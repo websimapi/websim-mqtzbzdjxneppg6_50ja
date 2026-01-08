@@ -13,6 +13,9 @@ export function initLoader() {
     let cycle = 0;
     let tick = 0;
     let speedInterval = 4; // Lower is faster
+
+    // Track when the loader animation has completed at least one full cycle
+    window.__loaderHasCompletedCycle = false;
     
     function reset() {
         width = canvas.width = window.innerWidth;
@@ -78,6 +81,10 @@ export function initLoader() {
             const tail = snake[snake.length-1];
             if (tail.x > width) {
                 cycle++;
+                if (cycle >= 1) {
+                    // Mark that we've completed at least one full pass
+                    window.__loaderHasCompletedCycle = true;
+                }
                 startLevel();
             }
         }
@@ -124,6 +131,13 @@ export function initLoader() {
 }
 
 export function hideLoader() {
+    // Ensure we don't hide the loader until at least one full animation cycle has completed
+    if (!window.__loaderHasCompletedCycle) {
+        // Try again shortly until the animation has finished a pass
+        setTimeout(hideLoader, 100);
+        return;
+    }
+
     const el = document.getElementById('loading-screen');
     if (el) {
         el.classList.add('hidden');
