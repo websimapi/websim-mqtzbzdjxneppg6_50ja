@@ -173,11 +173,42 @@ export function hideLoader() {
         return;
     }
 
-    const el = document.getElementById('loading-screen');
-    if (el) {
-        el.classList.add('hidden');
-        setTimeout(() => {
-            el.remove();
-        }, 600);
+    const loaderEl = document.getElementById('loading-screen');
+    const fadeEl = document.getElementById('black-fade');
+
+    if (!fadeEl) {
+        // Fallback: just remove loader as before
+        if (loaderEl) {
+            loaderEl.classList.add('hidden');
+            setTimeout(() => loaderEl.remove(), 600);
+        }
+        document.body.classList.add('ready');
+        return;
     }
+
+    // 1) Fade to black
+    fadeEl.classList.add('visible');
+
+    // 2) Once black, reveal scene and hide loader under it
+    setTimeout(() => {
+        document.body.classList.add('ready');
+
+        if (loaderEl) {
+            loaderEl.classList.add('hidden');
+            setTimeout(() => {
+                loaderEl.remove();
+            }, 600);
+        }
+
+        // 3) After scene has started fading in, fade black away
+        setTimeout(() => {
+            fadeEl.classList.remove('visible');
+            // Optional cleanup after fade-out completes
+            setTimeout(() => {
+                if (fadeEl && fadeEl.parentNode) {
+                    fadeEl.parentNode.removeChild(fadeEl);
+                }
+            }, 600);
+        }, 300); // small overlap so scene is already appearing under black
+    }, 500); // wait for black fade-in
 }
