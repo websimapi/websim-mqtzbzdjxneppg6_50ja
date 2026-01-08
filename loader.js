@@ -15,6 +15,7 @@ export function initLoader() {
     let speedInterval = 4; // Lower is faster
     let prevSnake = [];
     let dotPhase = 0;
+    let dotTick = 0;
 
     // Track when the loader animation has completed at least one full cycle
     window.__loaderHasCompletedCycle = false;
@@ -60,10 +61,14 @@ export function initLoader() {
         if (!isActive) return;
         
         tick++;
-        if (tick % speedInterval === 0) {
-            // Advance loading dots
-            dotPhase = (dotPhase + 1) % 4;
+        dotTick++;
 
+        // Slow dot animation: advance every 20 ticks (instead of every movement step)
+        if (dotTick % 20 === 0) {
+            dotPhase = (dotPhase + 1) % 4;
+        }
+
+        if (tick % speedInterval === 0) {
             // 1. Move Head
             // Save previous snake state for smooth interpolation
             prevSnake = snake.map(s => ({ ...s }));
@@ -111,7 +116,20 @@ export function initLoader() {
         ctx.font = 'bold 18px "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`LOADING${dots}`, width/2, height/2 + cellSize * 2.5);
+
+        const centerX = width / 2;
+        const baseY = height / 2 + cellSize * 2.5;
+
+        // Draw the word "LOADING" centered
+        ctx.fillText('LOADING', centerX, baseY);
+
+        // Measure "LOADING" and draw dots to the right without shifting the center
+        const loadingWidth = ctx.measureText('LOADING').width;
+        const prevAlign = ctx.textAlign;
+        ctx.textAlign = 'left';
+        const dotsX = centerX + loadingWidth / 2 + 6; // small gap after the word
+        ctx.fillText(dots, dotsX, baseY);
+        ctx.textAlign = prevAlign;
         
         // Draw Foods
         ctx.fillStyle = '#ffaa00';
