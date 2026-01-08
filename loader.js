@@ -13,6 +13,8 @@ export function initLoader() {
     let cycle = 0;
     let tick = 0;
     let speedInterval = 4; // Lower is faster
+    let prevSnake = [];
+    let dotPhase = 0;
 
     // Track when the loader animation has completed at least one full cycle
     window.__loaderHasCompletedCycle = false;
@@ -27,6 +29,7 @@ export function initLoader() {
     
     function startLevel() {
         snake = [];
+        prevSnake = [];
         // Center vertically on a grid line
         const startY = Math.floor(height / 2 / cellSize) * cellSize;
         const length = 3 + cycle * 2;
@@ -36,6 +39,9 @@ export function initLoader() {
         for(let i=0; i<length; i++) {
             snake.push({ x: -(i+1)*cellSize, y: startY });
         }
+        
+        // Initial previous state matches current for smooth interpolation
+        prevSnake = snake.map(s => ({ ...s }));
         
         // Spawn foods
         foods = [];
@@ -55,7 +61,12 @@ export function initLoader() {
         
         tick++;
         if (tick % speedInterval === 0) {
+            // Advance loading dots
+            dotPhase = (dotPhase + 1) % 4;
+
             // 1. Move Head
+            // Save previous snake state for smooth interpolation
+            prevSnake = snake.map(s => ({ ...s }));
             const head = { ...snake[0] };
             head.x += cellSize;
             
@@ -92,13 +103,15 @@ export function initLoader() {
         // Render
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, width, height);
-        
-        // Loading Text
+
+        // Loading Text (slightly smaller, with dot animation)
+        const progress = speedInterval > 0 ? (tick % speedInterval) / speedInterval : 0;
+        const dots = '.'.repeat(dotPhase);
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 24px "Segoe UI", sans-serif';
+        ctx.font = 'bold 18px "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('LOADING...', width/2, height/2 + cellSize * 2.5);
+        ctx.fillText(`LOADING${dots}`, width/2, height/2 + cellSize * 2.5);
         
         // Draw Foods
         ctx.fillStyle = '#ffaa00';
@@ -108,17 +121,21 @@ export function initLoader() {
             ctx.fill();
         }
         
-        // Draw Snake
+        // Draw Snake (interpolated between previous and current positions for smoothness)
         for(let i=0; i<snake.length; i++) {
-            const s = snake[i];
+            const sNew = snake[i];
+            const sOld = prevSnake[i] || sNew;
+            const drawX = sOld.x + (sNew.x - sOld.x) * progress;
+            const drawY = sOld.y + (sNew.y - sOld.y) * progress;
+
             // Head is slightly brighter
             ctx.fillStyle = i === 0 ? '#44ff44' : '#00cc00';
-            ctx.fillRect(s.x + 2, s.y + 2, cellSize - 4, cellSize - 4);
+            ctx.fillRect(drawX + 2, drawY + 2, cellSize - 4, cellSize - 4);
             
             // Eyes for head
             if (i === 0) {
                 ctx.fillStyle = '#000';
-                ctx.fillRect(s.x + cellSize - 8, s.y + 6, 4, 4); // Eye
+                ctx.fillRect(drawX + cellSize - 8, drawY + 6, 4, 4); // Eye
             }
         }
         
